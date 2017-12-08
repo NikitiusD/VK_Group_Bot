@@ -7,6 +7,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using xNet.Collections;
 using xNet.Net;
+using System.IO;
+using System.Net.Http;
+using System.Xml.Linq;
 
 namespace Bot
 {
@@ -23,37 +26,34 @@ namespace Bot
 
         public HttpResponse Get(HttpRequest request, string methodName, StringDictionary keys)
         {
-            var response = request.Get($"https://api.vk.com/method/{methodName}", keys);
-            return response;
+            return request.Get($"https://api.vk.com/method/{methodName}", keys);
         }
 
         public HttpResponse Post(HttpRequest request, string methodName, StringDictionary keys)
         {
-            var response = request.Post($"https://api.vk.com/method/{methodName}", keys);
-            return response;
+            return request.Post($"https://api.vk.com/method/{methodName}", keys);
         }
 
         public HttpResponse Post(HttpRequest request, string uploadUrl, string path)
         {
             request.AddFile("photo", path);
-            var response = request.Post(uploadUrl);
-            return response;
+            return request.Post(uploadUrl);
         }
 
         public string PostPhoto(string path)
         {
             using (var request = new HttpRequest())
             {
+                #region Get the address to upload the photo
                 var uploadUrl = GetUploadUrl(request, "photos.getWallUploadServer");
-                Console.WriteLine("1 complete");
+                #endregion
 
+                #region Send the photo to the received address
                 var response = Post(request, uploadUrl, path);
-                dynamic c = JObject.Parse(JsonConvert.DeserializeObject(response.ToString()).ToString());
-                string server = c.server;
-                string photo = c.photo;
-                string hash = c.hash;
-                Console.WriteLine("2 complete");
-
+                dynamic responseInJson = JObject.Parse(JsonConvert.DeserializeObject(response.ToString()).ToString());
+                string server = responseInJson.server;
+                string photo = responseInJson.photo;
+                string hash = responseInJson.hash;
                 response = Post(request, "photos.saveWallPhoto",
                     new StringDictionary
                     {
@@ -63,11 +63,12 @@ namespace Bot
                         {"photo", photo},
                         {"hash", hash}
                     });
-                dynamic e = JObject.Parse(JsonConvert
-                    .DeserializeObject(response.ToString().Replace(']', ' ').Replace('[', ' ')).ToString());
-                string attachments = e.response.id;
-                Console.WriteLine("3 complete");
+                responseInJson =
+                    JObject.Parse(JsonConvert.DeserializeObject(response.ToString().Replace(']', ' ').Replace('[', ' ')).ToString());
+                string attachments = responseInJson.response.id;
+                #endregion
 
+                #region Save information about the uploaded photo
                 response = Post(request, "wall.post",
                     new StringDictionary
                     {
@@ -76,7 +77,7 @@ namespace Bot
                         {"attachments", attachments},
                         {"from_group", "1"}
                     });
-                Console.WriteLine("4 complete");
+                #endregion
 
                 return response.ToString();
             }
@@ -85,9 +86,9 @@ namespace Bot
         private string GetUploadUrl(HttpRequest request, string methodName)
         {
             var uploadUrlResponse = Post(request, methodName, new StringDictionary { { "group_id", groupId }, { "access_token", accessToken } });
-            var a = uploadUrlResponse.ToString();
-            dynamic b = JObject.Parse(JsonConvert.DeserializeObject(a).ToString());
-            return b.response.upload_url;
+            var response = uploadUrlResponse.ToString();
+            dynamic responseInJson = JObject.Parse(JsonConvert.DeserializeObject(response).ToString());
+            return responseInJson.response.upload_url;
         }
     }
 }

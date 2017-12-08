@@ -21,6 +21,11 @@ namespace Bot
         
         public Bot()
         {
+            Main();
+        }
+
+        private void Main()
+        {
             var request = new Request(groupId, accessToken);
             var response = request.PostPhoto(@"C:\Projects\VKGroupBot\Pics\pic.png");
             Console.WriteLine(response);
