@@ -1,0 +1,10 @@
+C:\Projects\VKGroupBot\Bot\Bot\bin\Debug\Bot.exe.config
+C:\Projects\VKGroupBot\Bot\Bot\bin\Debug\Bot.exe
+C:\Projects\VKGroupBot\Bot\Bot\bin\Debug\Bot.pdb
+C:\Projects\VKGroupBot\Bot\Bot\bin\Debug\Newtonsoft.Json.dll
+C:\Projects\VKGroupBot\Bot\Bot\bin\Debug\xNet.dll
+C:\Projects\VKGroupBot\Bot\Bot\bin\Debug\Newtonsoft.Json.xml
+C:\Projects\VKGroupBot\Bot\Bot\obj\Debug\Bot.csprojResolveAssemblyReference.cache
+C:\Projects\VKGroupBot\Bot\Bot\obj\Debug\Bot.csproj.CoreCompileInputs.cache
+C:\Projects\VKGroupBot\Bot\Bot\obj\Debug\Bot.exe
+C:\Projects\VKGroupBot\Bot\Bot\obj\Debug\Bot.pdb
