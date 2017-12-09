@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,9 +17,10 @@ namespace Bot
     class Bot
     {
         private const string appId = "6289595";
-        private const string groupId = "158155713";
+        private const string MemeForceId = "158155713";
+        private const string standartPath = @"C:\Projects\VKGroupBot\Pics\";
         private readonly string accessToken = File.ReadAllText(@"C:\Projects\VKGroupBot\access_token.txt");
-        
+
         public Bot()
         {
             Main();
@@ -26,16 +28,13 @@ namespace Bot
 
         private void Main()
         {
-            var request = new Request(groupId, accessToken);
-            var response = request.PostPhoto(
-                new[]
-                {
-                    @"C:\Projects\VKGroupBot\Pics\pic.png",
-                    @"C:\Projects\VKGroupBot\Pics\pic1.jpg",
-                    @"C:\Projects\VKGroupBot\Pics\pic2.jpg"
-                }, "Привет, это первый пост, который корректо загрузил сразу несколько фотогорафий и сообщение");
+            var matMexMemes = new Group("134071529", accessToken);
+            var posts = matMexMemes.GetPosts(500);
+            var bestPosts = matMexMemes.GetBestPosts(posts);
+            matMexMemes.SaveAll(bestPosts.ToList(), standartPath);
 
-            Console.WriteLine(Request.JsonParse(response));
+            //var request = new Request(MemeForceId, accessToken);
+            //request.PostPhoto(new[] { @"C:\Projects\VKGroupBot\Pics\1.png" }, "");
         }
     }
 }

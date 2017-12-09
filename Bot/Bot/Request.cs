@@ -26,7 +26,8 @@ namespace Bot
 
         public HttpResponse Get(HttpRequest request, string methodName, StringDictionary keys)
         {
-            return request.Get($"https://api.vk.com/method/{methodName}", keys);
+            var response = request.Get($"https://api.vk.com/method/{methodName}", keys);
+            return response;
         }
 
         public HttpResponse Post(HttpRequest request, string methodName, StringDictionary keys)
@@ -42,6 +43,8 @@ namespace Bot
 
         public string PostPhoto(string[] pathes, string message)
         {
+            if (pathes.Length > 10)
+                pathes = pathes.Take(10).ToArray();
             using (var request = new HttpRequest())
             {
                 HttpResponse response;
@@ -69,8 +72,8 @@ namespace Bot
                             {"photo", photo},
                             {"hash", hash}
                         });
-                    responseString = response.ToString().Replace(']', ' ').Replace('[', ' ');
-                    responseInJson = JsonParse(responseString);
+                    responseString = response.ToString();
+                    responseInJson = JsonParse(responseString.Replace('[', ' ').Replace(']', ' '));
                     attachments += "," + responseInJson.response.id;
                     #endregion
                 }
@@ -98,7 +101,7 @@ namespace Bot
             dynamic responseInJson = JObject.Parse(JsonConvert.DeserializeObject(response).ToString());
             return responseInJson.response.upload_url;
         }
-        
+
         public static JObject JsonParse(string json)
         {
             return JObject.Parse(JsonConvert.DeserializeObject(json).ToString());
