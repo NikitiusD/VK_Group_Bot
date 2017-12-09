@@ -27,8 +27,15 @@ namespace Bot
         private void Main()
         {
             var request = new Request(groupId, accessToken);
-            var response = request.PostPhoto(@"C:\Projects\VKGroupBot\Pics\pic.png");
-            Console.WriteLine(response);
+            var response = request.PostPhoto(
+                new[]
+                {
+                    @"C:\Projects\VKGroupBot\Pics\pic.png",
+                    @"C:\Projects\VKGroupBot\Pics\pic1.jpg",
+                    @"C:\Projects\VKGroupBot\Pics\pic2.jpg"
+                }, "Привет, это первый пост, который корректо загрузил сразу несколько фотогорафий и сообщение");
+
+            Console.WriteLine(Request.JsonParse(response));
         }
     }
 }
