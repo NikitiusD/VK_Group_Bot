@@ -49,7 +49,7 @@ namespace Bot
             return response;
         }
 
-        public string PostPhoto(string[] pathes, string message)
+        public string PostAPost(string[] pathes, string message, long unixTime)
         {
             if (pathes.Length > 10)
                 pathes = pathes.Take(10).ToArray();
@@ -60,22 +60,21 @@ namespace Bot
                 foreach (var path in pathes)
                 {
                     #region Get the address to upload the photo
-
                     var methodName = "photos.getWallUploadServer";
-                    response = Post(request, methodName,
-                        new StringDictionary { { "group_id", groupId }, { "access_token", accessToken } }, Format.Json);
-                    dynamic responseInJson = JObject.Parse(JsonConvert.DeserializeObject(response.ToString()).ToString());
-                    var uploadUrl = responseInJson.response.upload_url;
+                    response = Get(request, methodName,
+                        new StringDictionary { { "group_id", groupId }, { "access_token", accessToken } }, Format.Xml);
+                    var responseXml = XDocument.Parse(response.ToString());
+                    var uploadUrl = responseXml.Element("response").Element("upload_url").Value;
                     #endregion
 
                     #region Send the photo to the received address
                     response = Post(request, uploadUrl, path);
-                    responseInJson = JsonParse(response.ToString());
-                    string server = responseInJson.server;
-                    string photo = responseInJson.photo;
-                    string hash = responseInJson.hash;
+                    var responseJson = JObject.Parse(response.ToString());
+                    var server = responseJson.Property("server").Value.ToString();
+                    var photo = responseJson.Property("photo").Value.ToString();
+                    var hash = responseJson.Property("hash").Value.ToString();
 
-                    response = Post(request, "photos.saveWallPhoto",
+                    response = Get(request, "photos.saveWallPhoto",
                         new StringDictionary
                         {
                             {"group_id", groupId},
@@ -83,40 +82,29 @@ namespace Bot
                             {"server", server},
                             {"photo", photo},
                             {"hash", hash}
-                        }, Format.Json);
-                    responseInJson = JsonParse(response.ToString().Replace('[', ' ').Replace(']', ' '));
-                    attachments += "," + responseInJson.response.id;
+                        }, Format.Xml);
+                    responseXml = XDocument.Parse(response.ToString());
+                    var id = responseXml.Element("response").Element("photo").Element("id").Value;
+                    attachments += "," + id;
                     #endregion
                 }
 
                 #region Save information about the uploaded photos
-                response = Post(request, "wall.post",
+
+                response = Get(request, "wall.post",
                     new StringDictionary
                     {
                         {"owner_id", "-" + groupId},
                         {"access_token", accessToken},
                         {"attachments", attachments},
                         {"from_group", "1"},
-                        {"message", message }
+                        {"message", message},
+                        {"publish_date", unixTime.ToString()}
                     }, Format.Xml);
                 #endregion
 
                 return response.ToString();
             }
-        }
-
-        private string GetUploadUrl(HttpRequest request, string methodName)
-        {
-            var uploadUrlResponse = Post(request, methodName,
-                new StringDictionary { { "group_id", groupId }, { "access_token", accessToken } }, Format.Json);
-            var response = uploadUrlResponse.ToString();
-            dynamic responseInJson = JObject.Parse(JsonConvert.DeserializeObject(response).ToString());
-            return responseInJson.response.upload_url;
-        }
-
-        private static JObject JsonParse(string json)
-        {
-            return JObject.Parse(JsonConvert.DeserializeObject(json).ToString());
         }
     }
 }

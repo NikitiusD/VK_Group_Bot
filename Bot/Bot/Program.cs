@@ -14,6 +14,8 @@ namespace Bot
         static void Main(string[] args)
         {
             var bot = new Bot();
+            bot.DownloadGroupsContent(400);
+            bot.PostAll();
         }
     }
 }

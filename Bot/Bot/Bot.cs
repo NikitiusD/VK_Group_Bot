@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using xNet.Collections;
 using xNet.Net;
 using Newtonsoft.Json;
@@ -33,14 +34,39 @@ namespace Bot
             //var posts = matMexMemes.GetPosts(500);
             //var bestPosts = matMexMemes.GetBestPosts(posts);
             //matMexMemes.SaveAll(bestPosts, StandartPath);
-
-            DownloadGroupsContent(400);
-
-            var request = new Request(MemeForceId, accessToken);
-            request.PostPhoto(new[] { @"C:\Projects\VKGroupBot\Pics\1.png" }, "");
         }
 
-        private void DownloadGroupsContent(int amount)
+        public void PostAll()
+        {
+            var twoHours = 7200;
+            var random = new Random();
+            var postponementTime = 0;
+            var currentTime = DateTimeOffset.Now.ToUnixTimeSeconds();
+            var directories = Directory.GetDirectories(StandartPath);
+            var request = new Request(MemeForceId, accessToken);
+            var currentPostToPost = int.Parse(File.ReadAllText(StandartPath + @"\current_post_to_post.txt"));
+            var border = Math.Min(directories.Length, 3 + currentPostToPost);
+            for (var i = currentPostToPost; i < border; i++ , currentPostToPost++)
+            {
+                var directory = directories[i];
+                var photos = Directory.GetFiles(directory, "*.jpg");
+                string text;
+                try
+                {
+                    text = File.ReadAllText(directory + @"\text.txt");
+                }
+                catch
+                {
+                    text = "";
+                }
+                var nextRandom = random.NextDouble();
+                postponementTime += nextRandom > 0.5 ? (int)(twoHours * nextRandom) : 3600;
+                var response = request.PostAPost(photos, text, currentTime + postponementTime);
+            }
+            File.WriteAllText(StandartPath + @"\current_post_to_post.txt", currentPostToPost.ToString());
+        }
+
+        public void DownloadGroupsContent(int amount)
         {
             var groups = new GroupClaster(MemeForceId, accessToken);
             var groupsInfo = groups.GetLinks();
