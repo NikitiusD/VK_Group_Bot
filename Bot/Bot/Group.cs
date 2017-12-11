@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using xNet.Collections;
@@ -17,50 +18,53 @@ namespace Bot
     class Group
     {
         private readonly string groupId;
+        private readonly string groupName;
         private readonly string accessToken;
         private readonly List<WallPost> posts = new List<WallPost>();
 
         private double averageOfLikes = 0.0;
         private double averageOfReposts = 0.0;
+        const int step = 40;
 
-        public Group(string groupId, string accessToken)
+        public Group(KeyValuePair<string, string> groupId, string accessToken)
         {
-            this.groupId = groupId;
+            this.groupId = groupId.Key;
+            this.groupName = (new string(groupId.Value.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c)).ToArray())).Trim();
             this.accessToken = accessToken;
         }
 
         public IEnumerable<WallPost> GetPosts(int amount)
         {
-            var req = new Request(groupId, accessToken);
-            Console.WriteLine($"Parsing {groupId} right now");
-            using (var request = new HttpRequest())
+            var request = new Request(groupId, accessToken);
+            Console.WriteLine($"Parsing {groupName} right now");
+            using (var httpRequest = new HttpRequest())
             {
                 var countOfPosts = 1;
-                var step = 40;
                 for (var i = 0; i < Math.Min(countOfPosts, amount); i += step)
                 {
                     Thread.Sleep(300);
-                    Console.WriteLine($"Now at {i} post");
-                    var response = req.Get(request, "wall.get", new StringDictionary()
+                    //Console.WriteLine($"Now at {i} post");
+                    var response = request.Get(httpRequest, "wall.get", new StringDictionary()
                     {
                         {"owner_id", $"-{groupId}"},
                         {"access_token", accessToken},
                         {"offset", $"{i}"},
                         {"count", $"{step}"}
-                    });
-                    var responseString = response.ToString();
-                    var responseInJson = WallPostJson.FromJson(responseString);
-                    if (i == 0) countOfPosts = (int)responseInJson.Response[0].Integer;
-                    var cuttedResponseInJson = responseInJson.Response.Skip(1).ToArray();
-                    foreach (var cuttedResponse in cuttedResponseInJson)
+                    }, Request.Format.Xml);
+
+                    var responseXml = XDocument.Parse(response.ToString());
+                    if (i == 0) countOfPosts = int.Parse(responseXml.Element("response").Element("count").Value);
+                    foreach (var post in responseXml.Element("response").Elements("post"))
                     {
                         try
                         {
-                            var photos = cuttedResponse.PurpleResponse.Attachments.Select(x => x.Photo.SrcBig.ToString()).ToArray();
-                            var likes = cuttedResponse.PurpleResponse.Likes.Count.ToString();
-                            var reposts = cuttedResponse.PurpleResponse.Reposts.Count.ToString();
-                            var text = cuttedResponse.PurpleResponse.Text;
-                            posts.Add(new WallPost(likes, reposts, photos, text));
+                            var likes = post.Element("likes").Element("count").Value;
+                            var reposts = post.Element("reposts").Element("count").Value;
+                            var text = post.Element("text").Value;
+                            var photos = post.Elements("attachments").Elements("attachment").Elements("photo")
+                                .Select(photo => photo.Element("src_big").Value).ToArray();
+                            if (!photos.IsEmpty())
+                                posts.Add(new WallPost(likes, reposts, photos, text));
                         }
                         catch { }
                     }
@@ -71,24 +75,26 @@ namespace Bot
                     averageOfReposts += int.Parse(post.reposts);
                 }
                 averageOfLikes /= posts.Count;
+                averageOfLikes = Math.Round(averageOfLikes, 2);
                 averageOfReposts /= posts.Count;
-                Console.WriteLine($"Parsing of the {groupId} was successful");
+                averageOfReposts = Math.Round(averageOfReposts, 2);
+                Console.WriteLine($"Parsing of the {groupName} was successful");
                 return posts;
             }
         }
 
-        public IEnumerable<WallPost> GetBestPosts(IEnumerable<WallPost> posts)
+        public List<WallPost> GetBestPosts(IEnumerable<WallPost> posts)
         {
-            Console.WriteLine("The selection was successful");
-            return posts
-                .Where(x => int.Parse(x.likes) >= averageOfLikes * 2 || int.Parse(x.reposts) >= averageOfReposts * 3)
-                .Select(x => x);
-
+            var bestPosts = posts
+                .Where(x => int.Parse(x.likes) >= averageOfLikes * 2.5 || int.Parse(x.reposts) >= averageOfReposts * 4)
+                .Select(x => x).ToList();
+            Console.WriteLine($"The selection of {groupName} was successful\nLikes avg = {averageOfLikes} and reposts avg = {averageOfReposts}");
+            return bestPosts;
         }
 
         public void SaveAll(List<WallPost> bestPosts, string path)
         {
-            path = $@"C:\Projects\VKGroupBot\Pics\{groupId}\";
+            path = $@"C:\Projects\VKGroupBot\Pics\{groupName}\";
             Directory.CreateDirectory(path);
 
             for (var i = 0; i < bestPosts.Count; i++)
@@ -106,7 +112,7 @@ namespace Bot
                     sw.WriteLine(bestPosts[i].text.Replace("<br>", " "));
                 }
             }
-            Console.WriteLine($"Downloading the {groupId} was successful");
+            Console.WriteLine($"Downloading the {groupName} was successful");
         }
     }
 }

@@ -18,27 +18,35 @@ namespace Bot
         private readonly string groupId;
         private readonly string accessToken;
 
+        public enum Format
+        {
+            Xml,
+            Json
+        }
+
         public Request(string groupId, string accessToken)
         {
             this.groupId = groupId;
             this.accessToken = accessToken;
         }
 
-        public HttpResponse Get(HttpRequest request, string methodName, StringDictionary keys)
+        public HttpResponse Get(HttpRequest request, string methodName, StringDictionary keys, Format format)
         {
-            var response = request.Get($"https://api.vk.com/method/{methodName}", keys);
+            var response = request.Get($"https://api.vk.com/method/{methodName}" + (format == Format.Xml ? ".xml" : ""), keys);
             return response;
         }
 
-        public HttpResponse Post(HttpRequest request, string methodName, StringDictionary keys)
+        public HttpResponse Post(HttpRequest request, string methodName, StringDictionary keys, Format format)
         {
-            return request.Post($"https://api.vk.com/method/{methodName}", keys);
+            var response = request.Post($"https://api.vk.com/method/{methodName}" + (format == Format.Xml ? ".xml" : ""), keys);
+            return response;
         }
 
         public HttpResponse Post(HttpRequest request, string uploadUrl, string path)
         {
             request.AddFile("photo", path);
-            return request.Post(uploadUrl);
+            var response = request.Post(uploadUrl);
+            return response;
         }
 
         public string PostPhoto(string[] pathes, string message)
@@ -52,13 +60,17 @@ namespace Bot
                 foreach (var path in pathes)
                 {
                     #region Get the address to upload the photo
-                    var uploadUrl = GetUploadUrl(request, "photos.getWallUploadServer");
+
+                    var methodName = "photos.getWallUploadServer";
+                    response = Post(request, methodName,
+                        new StringDictionary { { "group_id", groupId }, { "access_token", accessToken } }, Format.Json);
+                    dynamic responseInJson = JObject.Parse(JsonConvert.DeserializeObject(response.ToString()).ToString());
+                    var uploadUrl = responseInJson.response.upload_url;
                     #endregion
 
                     #region Send the photo to the received address
                     response = Post(request, uploadUrl, path);
-                    var responseString = response.ToString();
-                    dynamic responseInJson = JsonParse(responseString);
+                    responseInJson = JsonParse(response.ToString());
                     string server = responseInJson.server;
                     string photo = responseInJson.photo;
                     string hash = responseInJson.hash;
@@ -71,9 +83,8 @@ namespace Bot
                             {"server", server},
                             {"photo", photo},
                             {"hash", hash}
-                        });
-                    responseString = response.ToString();
-                    responseInJson = JsonParse(responseString.Replace('[', ' ').Replace(']', ' '));
+                        }, Format.Json);
+                    responseInJson = JsonParse(response.ToString().Replace('[', ' ').Replace(']', ' '));
                     attachments += "," + responseInJson.response.id;
                     #endregion
                 }
@@ -87,7 +98,7 @@ namespace Bot
                         {"attachments", attachments},
                         {"from_group", "1"},
                         {"message", message }
-                    });
+                    }, Format.Xml);
                 #endregion
 
                 return response.ToString();
@@ -96,13 +107,14 @@ namespace Bot
 
         private string GetUploadUrl(HttpRequest request, string methodName)
         {
-            var uploadUrlResponse = Post(request, methodName, new StringDictionary { { "group_id", groupId }, { "access_token", accessToken } });
+            var uploadUrlResponse = Post(request, methodName,
+                new StringDictionary { { "group_id", groupId }, { "access_token", accessToken } }, Format.Json);
             var response = uploadUrlResponse.ToString();
             dynamic responseInJson = JObject.Parse(JsonConvert.DeserializeObject(response).ToString());
             return responseInJson.response.upload_url;
         }
 
-        public static JObject JsonParse(string json)
+        private static JObject JsonParse(string json)
         {
             return JObject.Parse(JsonConvert.DeserializeObject(json).ToString());
         }

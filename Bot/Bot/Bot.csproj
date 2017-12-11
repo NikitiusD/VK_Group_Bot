@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Bot.cs" />
     <Compile Include="Group.cs" />
+    <Compile Include="GroupClaster.cs" />
     <Compile Include="Request.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
