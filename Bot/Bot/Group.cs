@@ -3,13 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using xNet.Collections;
 using xNet.Net;
 
@@ -22,8 +17,8 @@ namespace Bot
         private readonly string accessToken;
         private readonly List<WallPost> posts = new List<WallPost>();
 
-        private double averageOfLikes = 0.0;
-        private double averageOfReposts = 0.0;
+        private double averageOfLikes;
+        private double averageOfReposts;
         private const int Step = 40;
 
         public Group(KeyValuePair<string, string> groupId, string accessToken)
@@ -53,7 +48,8 @@ namespace Bot
                     }, Request.Format.Xml);
 
                     var responseXml = XDocument.Parse(response.ToString());
-                    if (i == 0) countOfPosts = int.Parse(responseXml.Element("response").Element("count").Value);
+                    if (i == 0)
+                        countOfPosts = int.Parse(responseXml.Element("response").Element("count").Value);
                     foreach (var post in responseXml.Element("response").Elements("post"))
                     {
                         try
@@ -79,7 +75,8 @@ namespace Bot
                 averageOfLikes = Math.Round(averageOfLikes / posts.Count, 2);
                 averageOfReposts = Math.Round(averageOfReposts / posts.Count, 2);
 
-                Console.WriteLine($"Parsing of the {groupName} was successful\nLikes avg = {averageOfLikes} and reposts avg = {averageOfReposts}");
+                Console.WriteLine($"Parsing of the {groupName} was successful" +
+                                  $"\nLikes avg = {averageOfLikes} and reposts avg = {averageOfReposts}");
                 return posts;
             }
         }
@@ -93,7 +90,7 @@ namespace Bot
             return bestPosts;
         }
 
-        public void SaveAll(List<WallPost> bestPosts, string path)
+        public void SaveAll(List<WallPost> bestPosts)
         {
             string currentPost;
             try
@@ -108,16 +105,15 @@ namespace Bot
 
             for (var i = 0; i < bestPosts.Count; i++, currentPostInt++)
             {
-                path = $@"C:\Projects\VKGroupBot\Pics\{currentPostInt}\";
+                var path = $@"C:\Projects\VKGroupBot\Pics\{currentPostInt}\";
                 Directory.CreateDirectory(path);
                 using (var client = new WebClient())
                 {
                     for (var j = 0; j < bestPosts[i].photosUrls.Length; j++)
-                    {
                         client.DownloadFile(bestPosts[i].photosUrls[j], path + j + ".jpg");
-                    }
                 }
-                if (string.IsNullOrEmpty(bestPosts[i].text)) continue;
+                if (string.IsNullOrEmpty(bestPosts[i].text))
+                    continue;
                 using (var streamWriter = File.CreateText(path + "text.txt"))
                 {
                     streamWriter.WriteLine(bestPosts[i].text.Replace("<br>", " "));

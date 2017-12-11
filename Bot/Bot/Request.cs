@@ -1,19 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+﻿using System.Linq;
 using Newtonsoft.Json.Linq;
 using xNet.Collections;
 using xNet.Net;
-using System.IO;
-using System.Net.Http;
 using System.Xml.Linq;
 
 namespace Bot
 {
-    class Request
+    internal class Request
     {
         private readonly string groupId;
         private readonly string accessToken;
