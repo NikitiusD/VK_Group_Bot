@@ -12,9 +12,7 @@ namespace Bot
         private const string MatMexMemesId = "134071529";
         private const string StandartPath = @"C:\Projects\VKGroupBot\Pics\";
         private readonly string accessToken = File.ReadAllText(@"C:\Projects\VKGroupBot\access_token.txt");
-
-        public Bot() { }
-
+        
         public void Main()
         {
             Console.WriteLine("If you want to do full list of tasks, then enter Full" +

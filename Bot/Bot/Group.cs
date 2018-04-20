@@ -44,7 +44,8 @@ namespace Bot
                         {"owner_id", $"-{groupId}"},
                         {"access_token", accessToken},
                         {"offset", $"{i}"},
-                        {"count", $"{Step}"}
+                        {"count", $"{Step}"},
+                        {"version", "5.74" }
                     }, Request.Format.Xml);
 
                     var responseXml = XDocument.Parse(response.ToString());
